@@ -1,0 +1,47 @@
+- set_fact:
+    api: "api-{{ outer_item }}"
+- name: "[api] create dirs"
+  file:
+    path: "{{item}}"
+    state: directory
+    owner: root
+    mode: 0755
+  loop:
+  - /opt/eosio
+  - "/opt/eosio/{{ api }}/bin"
+  - "/opt/eosio/{{ api }}/settings"
+  - "/opt/eosio/{{ api }}/workdir"
+- name: "[api] copy genesis.json"
+  copy:
+    src: "{{ playbook_dir }}/files/genesis.json"
+    dest: "/opt/eosio/{{ api }}/settings/genesis.json"
+    owner: root
+    mode: 0444
+- name: "[api] copy config.ini"
+  template:
+    src: "{{ playbook_dir }}/files/config.ini.api.j2"
+    dest: "/opt/eosio/{{ api }}/settings/config.ini"
+- name: "[api] copy bin"
+  copy:
+    src: "{{ playbook_dir }}/files/tmp/bin/{{ item }}"
+    dest: "/opt/eosio/{{ api }}/bin/{{ item }}"
+    owner: root
+    mode: 0544
+  loop:
+  - cleos
+  - keosd
+  - nodeos
+- name: "[api] copy start.sh"
+  copy:
+    src: "{{ playbook_dir }}/files/start.sh"
+    dest: "/opt/eosio/{{ api }}/start.sh"
+    owner: root
+    mode: 0544
+- name: "[api] copy nodeos_api.service"
+  template:
+    src: "{{ playbook_dir }}/files/nodeos_api.service.j2"
+    dest: "/etc/systemd/system/nodeos_{{ api }}.service"
+    mode: 0444
+    owner: root
+    group: root
+

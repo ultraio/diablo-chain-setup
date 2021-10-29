@@ -1,0 +1,43 @@
+global
+	log /dev/log    local0
+	log /dev/log    local1 notice
+	chroot /var/lib/haproxy
+	user haproxy
+	group haproxy
+	daemon
+
+	# Taken from https://mozilla.github.io/server-side-tls/ssl-config-generator/?server=haproxy
+	ssl-default-bind-ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384
+	ssl-default-bind-options prefer-client-ciphers no-sslv3 no-tlsv10 no-tlsv11 no-tls-tickets
+
+	# curl https://ssl-config.mozilla.org/ffdhe2048.txt > /etc/haproxy/dhparam
+	ssl-dh-param-file /etc/haproxy/dhparam
+
+defaults
+	log	global
+	mode	http
+	option	httplog
+	option	dontlognull
+	timeout connect 5000
+	timeout client  50000
+	timeout server  50000
+	errorfile 400 /etc/haproxy/errors/400.http
+	errorfile 403 /etc/haproxy/errors/403.http
+	errorfile 408 /etc/haproxy/errors/408.http
+	errorfile 500 /etc/haproxy/errors/500.http
+	errorfile 502 /etc/haproxy/errors/502.http
+	errorfile 503 /etc/haproxy/errors/503.http
+	errorfile 504 /etc/haproxy/errors/504.http
+
+frontend ft
+	bind *:443 ssl crt /etc/haproxy/cert.pem
+	default_backend bk
+
+	# HSTS (63072000 seconds)
+	http-response set-header Strict-Transport-Security max-age=63072000
+
+backend bk
+	option httpchk OPTIONS * HTTP/1.1\r\nHost:\ www
+	default-server check
+	server s1 {{ inventory_hostname }}:{{ vars[inventory_hostname]['api-1']['http'] }}
+	server s2 {{ inventory_hostname }}:{{ vars[inventory_hostname]['api-2']['http'] }} backup

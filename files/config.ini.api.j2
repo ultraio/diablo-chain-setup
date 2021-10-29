@@ -1,0 +1,32 @@
+chain-state-db-size-mb = 4096
+chain-state-db-guard-size-mb = 256
+
+agent-name = "API"
+
+max-clients = 50
+p2p-max-nodes-per-host = 10
+
+http-server-address = 127.0.0.1:{{ vars[inventory_hostname][api]['http'] }}
+p2p-listen-endpoint = {{ vars[inventory_hostname]['public_dns'] }}:{{ vars[inventory_hostname][api]['p2p'] }}
+
+#peers
+#producers
+{% for host in groups['producer'] %}
+p2p-peer-address = {{ vars[host]['public_dns'] }}:{{ vars[host]['producer']['p2p'] }}
+{% endfor %}
+#api
+{% for host in groups['api'] %}
+{% if host!=inventory_hostname %}
+p2p-peer-address = {{ vars[host]['public_dns'] }}:{{ vars[host]['api-1']['p2p'] }}
+p2p-peer-address = {{ vars[host]['public_dns'] }}:{{ vars[host]['api-2']['p2p'] }}
+{% endif %}
+{% endfor %}
+
+plugin = eosio::history_api_plugin
+plugin = eosio::chain_api_plugin
+
+http-validate-host = false
+
+access-control-allow-origin = *
+access-control-allow-headers = *
+access-control-allow-credentials = true

@@ -1,0 +1,14 @@
+[interface]
+Address = {{ vars[inventory_hostname]['wg_ip'] }}/32
+ListenPort = 45888
+DNS = 1.1.1.1
+PrivateKey = {{ vars[inventory_hostname]['wg_pv_key'] }}
+{% for host in groups['all_eos'] %}
+
+# {{ host }}
+[Peer]
+PublicKey = {{ vars[host]['wg_pub_key'] }}
+Endpoint = {{ vars[host]['public_dns']}}:45888
+AllowedIPs = {{ vars[host]['wg_ip'] }}/32
+PersistentKeepalive = 20
+{% endfor %}

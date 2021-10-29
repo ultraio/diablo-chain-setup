@@ -1,0 +1,9 @@
+# Managed by Ansible
+[DEFAULT]
+bantime = 600
+findtime = 600
+maxretry = 3
+enabled = false
+
+[sshd]
+enabled = true

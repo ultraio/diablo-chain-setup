@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# flush
+iptables -P INPUT ACCEPT
+iptables -F INPUT
+
+# allow ssh connections
+iptables -A INPUT -i {{ ansible_default_ipv4.interface }} -p tcp --dport 22 -m state --state NEW,ESTABLISHED -j ACCEPT
+
+{% if inventory_hostname in groups['haproxy'] %}
+# allow haproxy connections
+iptables -A INPUT -i {{ ansible_default_ipv4.interface }} -p tcp --dport 443 -m state --state NEW,ESTABLISHED -j ACCEPT
+{% endif %}
+
+# allow metrics exporter scraping from k8s production NAT IPs
+iptables -A INPUT -i {{ ansible_default_ipv4.interface }} -p tcp --dport 9558 -s {{ NAT_IPS }} -m state --state NEW,ESTABLISHED -j ACCEPT
+iptables -A INPUT -i {{ ansible_default_ipv4.interface }} -p tcp --dport 9100 -s {{ NAT_IPS }} -m state --state NEW,ESTABLISHED -j ACCEPT
+iptables -A INPUT -i {{ ansible_default_ipv4.interface }} -p tcp --dport 9115 -s {{ NAT_IPS }} -m state --state NEW,ESTABLISHED -j ACCEPT
+
+# allow ping
+iptables -A INPUT -p icmp --icmp-type echo-request -j ACCEPT
+
+# allow existing connection to return (to make apt update, certbot work for instance)
+iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+# allow loopback connection for convenience
+iptables -A INPUT -i lo -j ACCEPT
+
+# default
+iptables -P INPUT DROP
+iptables -P FORWARD ACCEPT
+iptables -P OUTPUT ACCEPT
+
+# flush & accept everything
+# iptables -P INPUT ACCEPT
+# iptables -P FORWARD ACCEPT
+# iptables -P OUTPUT ACCEPT
+#
+# iptables -F
+# iptables -X
+# iptables -t nat -F
+# iptables -t nat -X
+# iptables -t mangle -F
+# iptables -t mangle -X
+#
+# iptables -P INPUT ACCEPT
+# iptables -P FORWARD ACCEPT
+# iptables -P OUTPUT ACCEPT

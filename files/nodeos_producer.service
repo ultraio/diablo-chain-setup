@@ -1,0 +1,13 @@
+[Unit]
+Description=Nodeos producer
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=root
+Group=root
+Type=simple
+ExecStart=/opt/eosio/producer/start.sh
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,545 @@
+---
+- hosts: all_eos
+  tags: hostname
+  gather_facts: no
+  tasks:
+  - name: "[all_eos] set hostname"
+    hostname:
+      name: "{{ inventory_hostname }}"
+
+# set root password for emergency connection via IPMI
+# N.B.: ssh password connection is blocked by sshd configuration
+#- hosts: all_eos
+#  tags: password
+#  gather_facts: no
+#  tasks:
+#  - name: "[all_eos] set root password"
+#    user:
+#      name: "root"
+#      password: "$6$mysecretsalt$0.lt/SGvLf3kqR009u2IgBw9wUjwFKwx/JGL1r4HicZzHlVlf0kOTWyVva7rNCl2.cyj.V6hicyBJ09ESKJC11"
+
+#- hosts: all_eos
+#  tags: sshd
+#  gather_facts: no
+#  tasks:
+#  - name: "[all_eos] harden sshd"
+#    copy:
+#      src: "{{ playbook_dir }}/files/sshd_config"
+#      dest: /etc/ssh/sshd_config
+#      mode: 0444
+#      owner: root
+#      group: root
+#  - name: "[all_eos] reload sshd"
+#    systemd:
+#      name: sshd
+#      state: reloaded
+
+- hosts: all_eos
+  tags: fail2ban
+  gather_facts: no
+  tasks:
+  - name: "[all_eos] install fail2ban"
+    apt:
+      name: "fail2ban"
+      update_cache: yes
+      cache_valid_time: 3600
+      autoclean: yes
+      autoremove: yes
+  - name: "[all_eos] config fail2ban"
+    copy:
+      src: "{{ playbook_dir }}/files/jail.local"
+      dest: /etc/fail2ban/jail.local
+      mode: 0444
+      owner: root
+      group: root
+  - name: "[all_eos] reload fail2ban"
+    systemd:
+      name: fail2ban
+      state: reloaded
+
+# The second task may not be necessary because ssh keys are alraedy set in .ssh/authorized_keys.
+- hosts: all_eos
+  tags: blockchain-team
+  gather_facts: no
+  tasks:
+  - name: "[all_eos] set blockchain team directory"
+    file:
+      path: /root/blockchain-team
+      owner: root
+      group: root
+      state: directory
+      mode: 0755
+#  - name: "[all_eos] set ssh key"
+#    authorized_key:
+#      user: root
+#      state: present
+#      key: "{{ lookup('file', \"{{ playbook_dir }}/files/benchmark-testnet.pub\") }}"
+
+- hosts: all_eos
+  tags: apt
+  gather_facts: no
+  tasks:
+  - name: "[all_eos] install some packages"
+    apt:
+      name: "{{ item }}"
+      update_cache: yes
+      cache_valid_time: 3600
+      autoclean: yes
+      autoremove: yes
+    loop:
+      - tree
+      - jq
+
+#- hosts: all_eos
+#  tags: hosts
+#  gather_facts: no
+#  tasks:
+#  - name: "[all_eos] fill /etc/hosts file"
+#    lineinfile:
+#      path: /etc/hosts
+#      regexp: "{{ item }}"
+#      line: "{{ vars[item]['wg_ip'] }} {{ item }}"
+#    loop: "{{ groups['all_eos'] }}"
+
+#- hosts: all_eos
+#  tags: wireguard
+#  gather_facts: no
+#  tasks:
+#  - name: "[all_eos] install wireguard"
+#    apt:
+#      name: "{{ item }}"
+#      update_cache: yes
+#      cache_valid_time: 3600
+#      autoclean: yes
+#      autoremove: yes
+#    loop:
+#      - wireguard
+#      - resolvconf
+#  - name: "[all_eos] set /etc/wireguard/ultra.conf"
+#    template:
+#      src: "{{ playbook_dir }}/files/ultra.conf.j2"
+#      dest: "/etc/wireguard/ultra.conf"
+#      owner: root
+#      mode: 0444
+#  - name: "[all_eos] run wireguard"
+#    shell: "if ! { ip addr | fgrep ultra ;}; then wg-quick up /etc/wireguard/ultra.conf; fi"
+
+- hosts: all_eos
+  tags: node_exporter
+  gather_facts: no
+  tasks:
+  - name: "[localhost] download locally node_exporter"
+    get_url:
+      url: https://github.com/prometheus/node_exporter/releases/download/v1.2.2/node_exporter-1.2.2.linux-amd64.tar.gz
+      dest: /tmp/node_exporter.tgz
+    run_once: true
+    delegate_to: localhost
+  - name: "[localhost] download locally node_exporter"
+    unarchive:
+      src: /tmp/node_exporter.tgz
+      dest: /tmp/
+      extra_opts: "--strip-components=1"
+    run_once: true
+    delegate_to: localhost
+  - name: "[all_eos] create group node_exporter"
+    group:
+      name: node_exporter
+      gid: 10000
+  - name: "[all_eos] create user node_exporter"
+    user:
+      name: node_exporter
+      comment: node_exporter
+      uid: 10000
+      group: node_exporter
+      shell: /usr/sbin/nologin
+  - name: "[all_eos] copy node_exporter"
+    copy:
+      src: /tmp/node_exporter
+      dest: /usr/local/bin/node_exporter
+      mode: 0554
+      owner: node_exporter
+      group: node_exporter
+  - name: "[all_eos] copy node_exporter.service"
+    copy:
+      src: "{{ playbook_dir }}/files/node_exporter.service"
+      dest: /etc/systemd/system/node_exporter.service
+      mode: 0444
+      owner: root
+      group: root
+  - name: "[all_eos] enable/start node_exporter.service"
+    systemd:
+      daemon_reload: yes
+      enabled: yes
+      name: node_exporter.service
+      state: started
+
+- hosts: all_eos
+  tags: systemd_exporter
+  gather_facts: no
+  tasks:
+  - name: "[localhost] download locally systemd_exporter"
+    get_url:
+      url: https://github.com/povilasv/systemd_exporter/releases/download/v0.4.0/systemd_exporter-0.4.0.linux-amd64.tar.gz
+      dest: /tmp/systemd_exporter.tgz
+    run_once: true
+    delegate_to: localhost
+  - name: "[localhost] download locally systemd_exporter"
+    unarchive:
+      src: /tmp/systemd_exporter.tgz
+      dest: /tmp/
+      extra_opts: "--strip-components=1"
+    run_once: true
+    delegate_to: localhost
+  - name: "[all_eos] create group systemd_exporter"
+    group:
+      name: systemd_exporter
+      gid: 10001
+  - name: "[all_eos] create user systemd_exporter"
+    user:
+      name: systemd_exporter
+      comment: systemd_exporter
+      uid: 10001
+      group: systemd_exporter
+      shell: /usr/sbin/nologin
+  - name: "[all_eos] copy systemd_exporter"
+    copy:
+      src: /tmp/systemd_exporter
+      dest: /usr/local/bin/systemd_exporter
+      mode: 0554
+      owner: systemd_exporter
+      group: systemd_exporter
+  - name: "[all_eos] copy systemd_exporter.service"
+    copy:
+      src: "{{ playbook_dir }}/files/systemd_exporter.service"
+      dest: /etc/systemd/system/systemd_exporter.service
+      mode: 0444
+      owner: root
+      group: root
+  - name: "[all_eos] enable/start systemd_exporter.service"
+    systemd:
+      daemon_reload: yes
+      enabled: yes
+      name: systemd_exporter.service
+      state: started
+
+- hosts: all_eos
+  tags: blackbox_exporter
+  gather_facts: no
+  tasks:
+  - name: "[localhost] download locally blackbox_exporter"
+    get_url:
+      url: https://github.com/prometheus/blackbox_exporter/releases/download/v0.19.0/blackbox_exporter-0.19.0.linux-amd64.tar.gz
+      dest: /tmp/blackbox_exporter.tgz
+    run_once: true
+    delegate_to: localhost
+  - name: "[localhost] extract locally blackbox_exporter"
+    unarchive:
+      src: /tmp/blackbox_exporter.tgz
+      dest: /tmp/
+      extra_opts: "--strip-components=1"
+    run_once: true
+    delegate_to: localhost
+  - name: "[all_eos] create /etc/blackbox-exporter directory"
+    file:
+      path: /etc/blackbox-exporter
+      owner: root
+      group: root
+      state: directory
+      mode: 0555
+  - name: "[all_eos] create /etc/blackbox-exporter/blackbox.yaml configuration"
+    copy:
+      src: "{{ playbook_dir }}/files/blackbox.yaml"
+      dest: /etc/blackbox-exporter/blackbox.yaml
+      mode: 0444
+      owner: root
+      group: root
+  - name: "[all_eos] create group blackbox_exporter"
+    group:
+      name: blackbox_exporter
+      gid: 10002
+  - name: "[all_eos] create user blackbox_exporter"
+    user:
+      name: blackbox_exporter
+      comment: blackbox_exporter
+      uid: 10002
+      group: blackbox_exporter
+      shell: /usr/sbin/nologin
+  - name: "[all_eos] copy blackbox_exporter"
+    copy:
+      src: /tmp/blackbox_exporter
+      dest: /usr/local/bin/blackbox_exporter
+      mode: 0554
+      owner: blackbox_exporter
+      group: blackbox_exporter
+  - name: "[all_eos] copy blackbox_exporter.service"
+    copy:
+      src: "{{ playbook_dir }}/files/blackbox_exporter.service"
+      dest: /etc/systemd/system/blackbox_exporter.service
+      mode: 0444
+      owner: root
+      group: root
+  # special permission for ICMP probe
+  # https://github.com/prometheus/blackbox_exporter#permissions
+  - name: "[all_eos] setcap cap_net_raw+ep /usr/local/bin/blackbox_exporter"
+    command: setcap cap_net_raw+ep /usr/local/bin/blackbox_exporter
+  - name: "[all_eos] enable/start blackbox_exporter.service"
+    systemd:
+      daemon_reload: yes
+      enabled: yes
+      name: blackbox_exporter.service
+      state: started
+
+- hosts: all_eos
+  tags: [producer, api, bootup]
+  gather_facts: no
+  tasks:
+  - name: "[localhost] download bins/contracts"
+    shell: |
+      rm -rf "{{ playbook_dir }}/files/tmp/"
+      if { docker ps -a | fgrep tmp-ansible-testnet-benchmark; }; then docker rm -f -v tmp-ansible-testnet-benchmark; fi
+      docker create --name=tmp-ansible-testnet-benchmark {{ IMAGE }}
+      mkdir -p {{ playbook_dir }}/files/tmp/bin {{ playbook_dir }}/files/tmp/contracts {{ playbook_dir }}/files/tmp/librdkafka {{ playbook_dir }}/files/tmp/rdkafkaheaders
+      docker cp tmp-ansible-testnet-benchmark:/opt/common/data/contracts/. {{ playbook_dir }}/files/tmp/contracts
+      docker cp tmp-ansible-testnet-benchmark:/opt/eosio/bin/cleos {{ playbook_dir }}/files/tmp/bin/cleos
+      docker cp tmp-ansible-testnet-benchmark:/opt/eosio/bin/keosd {{ playbook_dir }}/files/tmp/bin/keosd
+      docker cp tmp-ansible-testnet-benchmark:/opt/eosio/bin/nodeos {{ playbook_dir }}/files/tmp/bin/nodeos
+      docker cp tmp-ansible-testnet-benchmark:/usr/local/lib/librdkafka.so.1 {{ playbook_dir }}/files/tmp/librdkafka/librdkafka.so.1
+      docker cp tmp-ansible-testnet-benchmark:/usr/local/lib/librdkafka++.so.1 {{ playbook_dir }}/files/tmp/librdkafka/librdkafka++.so.1
+      docker cp tmp-ansible-testnet-benchmark:/usr/local/include/librdkafka/rdkafka.h {{ playbook_dir }}/files/tmp/rdkafkaheaders/rdkafka.h
+      docker cp tmp-ansible-testnet-benchmark:/usr/local/include/librdkafka/rdkafka_mock.h {{ playbook_dir }}/files/tmp/rdkafkaheaders/rdkafka_mock.h
+      docker cp tmp-ansible-testnet-benchmark:/usr/local/include/librdkafka/rdkafkacpp.h {{ playbook_dir }}/files/tmp/rdkafkaheaders/rdkafkacpp.h
+    run_once: true
+    delegate_to: localhost
+  - name: "[all_eos] copy librdkafka"
+    copy:
+      src: "{{ playbook_dir }}/files/tmp/librdkafka/{{ item }}"
+      dest: "/usr/local/lib/{{ item }}"
+      owner: root
+      mode: 0444
+    loop:
+    - librdkafka.so.1
+    - librdkafka++.so.1
+  - name: "[all_eos] create librdkafka"
+    file:
+      path: "/usr/local/include/librdkafka"
+      state: directory
+      owner: root
+      mode: 0755
+  - name: "[all_eos] copy rdkafkaheaders"
+    copy:
+      src: "{{ playbook_dir }}/files/tmp/rdkafkaheaders/{{ item }}"
+      dest: "/usr/local/include/{{ item }}"
+      owner: root
+      mode: 0444
+    loop:
+    - rdkafka.h
+    - rdkafka_mock.h
+    - rdkafkacpp.h
+
+- hosts: producer
+  tags: producer
+  gather_facts: no
+  tasks:
+  - name: "[producer] create dirs"
+    file:
+      path: "{{ item }}"
+      state: directory
+      owner: root
+      mode: 0755
+    loop:
+    - /opt/eosio
+    - /opt/eosio/producer/bin
+    - /opt/eosio/producer/settings
+    - /opt/eosio/producer/workdir
+  - name: "[producer] copy genesis.json"
+    copy:
+      src: "{{ playbook_dir }}/files/genesis.json"
+      dest: "/opt/eosio/producer/settings/genesis.json"
+      owner: root
+      mode: 0444
+  - name: "[producer] copy config.ini"
+    template:
+      src: "{{ playbook_dir }}/files/config.ini.producer.j2"
+      dest: "/opt/eosio/producer/settings/config.ini"
+  - name: "[producer] copy bin"
+    copy:
+      src: "{{ playbook_dir }}/files/tmp/bin/{{ item }}"
+      dest: "/opt/eosio/producer/bin/{{ item }}"
+      owner: root
+      mode: 0544
+    loop:
+    - cleos
+    - keosd
+    - nodeos
+  - name: "[producer] copy start.sh"
+    copy:
+      src: "{{ playbook_dir }}/files/start.sh"
+      dest: "/opt/eosio/producer/start.sh"
+      owner: root
+      mode: 0544
+  - name: "[producer] copy nodeos_producer.service"
+    copy:
+      src: "{{ playbook_dir }}/files/nodeos_producer.service"
+      dest: /etc/systemd/system/nodeos_producer.service
+      mode: 0444
+      owner: root
+      group: root
+
+- hosts: api
+  tags: api
+  gather_facts: no
+  tasks:
+  - include_tasks: ansible-task-api.yaml
+    loop:
+    - 1
+    - 2
+    loop_control:
+      loop_var: outer_item
+
+#- hosts: haproxy
+#  tags: haproxy
+#  gather_facts: no
+#  tasks:
+#  - set_fact:
+#      url: "{{ inventory_hostname }}.ultra.io"
+#  - name: "[haproxy] install haproxy and certbot"
+#    apt:
+#      name: "{{ item }}"
+#      update_cache: yes
+#      cache_valid_time: 3600
+#      autoclean: yes
+#      autoremove: yes
+#    loop:
+#      - haproxy
+#      - certbot
+#      - python3-certbot-dns-cloudflare
+#  - name: "[haproxy] copy dns credential"
+#    copy:
+#      src: "{{ playbook_dir }}/files/dns_cloudflare.ini.vault"
+#      dest: /root/.dns_cloudflare.ini
+#      mode: 0400
+#      owner: root
+#      group: root
+#  - name: "[haproxy] run certbot"
+#    shell: "certbot certonly --dns-cloudflare --dns-cloudflare-credentials /root/.dns_cloudflare.ini -d {{ url }} -m devops@ultra.io --agree-tos -n"
+#    register: certbot_output
+#  - name: "[haproxy] certbot output"
+#    debug:
+#      var: certbot_output.stdout_lines
+#  - name: "[haproxy] copy cert"
+#    shell: |
+#      cat privkey.pem fullchain.pem > /etc/haproxy/cert.pem
+#      chmod 400 /etc/haproxy/cert.pem
+#    args:
+#      chdir: "/etc/letsencrypt/live/{{ url }}"
+#  - name: "[haproxy] copy config"
+#    template:
+#      src: "{{ playbook_dir }}/files/haproxy/haproxy.cfg.j2"
+#      dest: "/etc/haproxy/haproxy.cfg"
+#      owner: root
+#      mode: 0400
+#  - name: "[haproxy] copy dhparam"
+#    copy:
+#      src: "{{ playbook_dir }}/files/haproxy/dhparam"
+#      dest: /etc/haproxy/dhparam
+#      mode: 0400
+#      owner: root
+#      group: root
+#  - name: "[haproxy] reload"
+#    shell: service haproxy reload
+#  - name: "[haproxy] create /root/.cron directory"
+#    file:
+#      path: /root/.cron
+#      owner: root
+#      group: root
+#      state: directory
+#      mode: 0755
+#  - name: "[haproxy] create cron script"
+#    template:
+#      src: "{{ playbook_dir }}/files/haproxy/certbot-haproxy.sh.j2"
+#      dest: "/root/.cron/certbot-haproxy.sh"
+#      owner: root
+#      mode: 0544
+#  # try to renew certificate every Tuesday at 10:00
+#  - name: "[haproxy] certbot crontab"
+#    cron:
+#      hour: "10"
+#      minute: "0"
+#      weekday: "2"
+#      name: "certbot-haproxy"
+#      user: "root"
+#      job: "/root/.cron/certbot-haproxy.sh"
+#      cron_file: "certbot-haproxy"
+
+- hosts: bootup
+  tags: bootup
+  gather_facts: no
+  tasks:
+  - name: "[bootup] create dirs"
+    file:
+      path: "{{item}}"
+      state: directory
+      owner: root
+      mode: 0755
+    loop:
+    - /root/nodeos-bootstrap
+    - /root/nodeos-bootstrap/bin
+    - /root/nodeos-bootstrap/contracts
+  - name: "[bootup] copy bin"
+    copy:
+      src: "{{ playbook_dir }}/files/tmp/bin/{{ item }}"
+      dest: "/root/nodeos-bootstrap/bin/{{ item }}"
+      owner: root
+      mode: 0544
+    loop:
+    - cleos
+    - keosd
+    - nodeos
+  - name: "[bootup] copy contracts"
+    synchronize:
+      src: "{{ playbook_dir }}/files/tmp/contracts/"
+      dest: /root/nodeos-bootstrap/contracts/
+      use_ssh_args: yes
+  - name: "[bootup] fix contracts permissions"
+    shell: |
+      chown -R root:root /root/nodeos-bootstrap/contracts/
+      chmod -R 444 /root/nodeos-bootstrap/contracts/
+  - name: "[bootup] deploy bootup.sh"
+    copy:
+      src: "{{ playbook_dir }}/files/bootup.sh"
+      dest: /root/nodeos-bootstrap/bootup.sh
+      owner: root
+      mode: 0544
+
+#- hosts: all_eos
+#  tags: iptables
+#  gather_facts: yes
+#  tasks:
+#  - set_fact:
+#      NAT_IPS: "34.77.128.115,104.155.53.214,35.195.86.56"
+#  - name: "[all_eos] setup iptables rules (1)"
+#    template:
+#      src: "{{ playbook_dir }}/files/iptables.sh.j2"
+#      dest: "/var/tmp/iptables.sh"
+#      owner: root
+#      mode: 0544
+#  - name: "[all_eos] setup iptables rules (2)"
+#    shell: /var/tmp/iptables.sh
+#  - name: "[all_eos] setup iptables-persistent (1)"
+#    debconf:
+#      name: "iptables-persistent"
+#      question: "iptables-persistent/{{ item }}"
+#      value: "false"
+#      vtype: "boolean"
+#    with_items:
+#      - autosave_v4
+#      - autosave_v6
+#  - name: "[all_eos] setup iptables-persistent (2)"
+#    apt:
+#      name: "iptables-persistent"
+#      update_cache: yes
+#      cache_valid_time: 3600
+#      autoclean: yes
+#      autoremove: yes
+#  - name: "[all_eos] persist iptables"
+#    shell: iptables-save > /etc/iptables/rules.v4

@@ -1,0 +1,14 @@
+[Unit]
+Description=Systemd Exporter
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=systemd_exporter
+Group=systemd_exporter
+Type=simple
+ExecStart=/usr/local/bin/systemd_exporter
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

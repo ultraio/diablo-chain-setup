@@ -1,0 +1,8 @@
+#!/bin/bash
+# managed by Ansible
+set -eux
+
+certbot certonly --dns-cloudflare --dns-cloudflare-credentials /root/.dns_cloudflare.ini -d {{ url }} -m devops@ultra.io --agree-tos -n
+cat /etc/letsencrypt/live/{{ url }}/privkey.pem /etc/letsencrypt/live/{{ url }}/fullchain.pem > /etc/haproxy/cert.pem
+chmod 400 /etc/haproxy/cert.pem
+service haproxy reload

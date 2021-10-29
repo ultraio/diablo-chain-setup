@@ -1,0 +1,40 @@
+chain-state-db-size-mb = 4096
+chain-state-db-guard-size-mb = 256
+
+agent-name = "Producer"
+
+max-clients = 50
+p2p-max-nodes-per-host = 10
+
+http-server-address = 127.0.0.1:{{ vars[inventory_hostname]['producer']['http'] }}
+p2p-listen-endpoint = {{ vars[inventory_hostname]['public_dns'] }}:{{ vars[inventory_hostname]['producer']['p2p'] }}
+
+#peers
+#producers
+{% for host in groups['producer'] %}
+{% if host!=inventory_hostname %}
+p2p-peer-address = {{ vars[host]['public_dns'] }}:{{ vars[host]['producer']['p2p'] }}
+{% endif %}
+{% endfor %}
+#api
+{% for host in groups['api'] %}
+p2p-peer-address = {{ vars[host]['public_dns'] }}:{{ vars[host]['api-1']['p2p'] }}
+p2p-peer-address = {{ vars[host]['public_dns'] }}:{{ vars[host]['api-2']['p2p'] }}
+{% endfor %}
+
+enable-stale-production  = true
+pause-on-startup = false
+
+max-transaction-time = 5000
+http-max-response-time-ms = 30000
+
+{% if inventory_hostname=='bhs-infra-1' %}
+producer-name = {{ first_producer_name }}
+{% else %}
+producer-name = {{ vars[inventory_hostname]['producer']['name'] }}
+{% endif %}
+signature-provider = EOS6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV=KEY:5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3
+
+plugin = eosio::chain_api_plugin
+plugin = eosio::net_api_plugin
+plugin = eosio::producer_api_plugin
