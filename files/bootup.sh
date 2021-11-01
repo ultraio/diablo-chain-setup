@@ -279,21 +279,20 @@ function setup_producers
 {
   if [[ $NUMBER_OF_PRODUCERS -gt 0 ]]; then
 
+    prods_strings=()
     # create producer account and register producer
     for ai in "${PRODUCER_ACCOUNTS[@]}"
-    do      
+    do
       # create new account for producer
-#      ${CLEOS} system newaccount eosio ${ai} ${EOS_PUB_KEY} --gift-ram-kbytes 8192 -p eosio --ultra-id ${ultra_id}
       ${CLEOS} system newaccount ultra.eosio ${ai} ${EOS_PUB_KEY} --transfer --gift-ram-kbytes 8192 -p ultra.eosio --ultra-id ${ultra_id}
       ultra_id=$(( ultra_id + 1 ))
-
-#     ${CLEOS} push action eosio.token open '[\"${ai}\", "8,UOS", "ultra"]' -p ${ai}
-
+      ${CLEOS} push action eosio.token open '["'${ai}'", "8,UOS", "'${ai}'"]' -p ${ai}
       # register new producer
       ${CLEOS} system regproducer ${ai} ${EOS_PUB_KEY} https:://${ai}.com/${EOS_PUB_KEY} -p ${ai}
+      prods_strings+=("\"${ai}\"")
     done
-
-    sleep 1
+    prods="$(IFS=","; echo "${prods_strings[*]}")" # prods='"produceraccproduceracc1","produceraccproduceracc2","produceraccproduceracc3"'
+    ${CLEOS} push action eosio setprods '[['"${prods}"']]' -p ultra.eosio
 
     resign_eosio_accounts
   fi
@@ -333,27 +332,27 @@ function setup_ultra_accounts() {
   ultra_id=$(( ultra_id + 1 ))
 
   # create ultra.shop account and deploy shop contract
-  ${CLEOS} system newaccount ultra ultra.shop  ${EOS_PUB_KEY} --transfer --stake-net="5000.00000000 UOS" --stake-cpu="5000.00000000 UOS" --gift-ram-kbytes 5000  -p ultra --ultra-id ${ultranft_id}
+  ${CLEOS} system newaccount ultra ultra.shop  ${EOS_PUB_KEY} --transfer --gift-ram-kbytes 5000  -p ultra --ultra-id ${ultranft_id}
   ${CLEOS} set contract ultra.shop ${CONTRACT_DIRECTORY}/ultra.shop ultra.shop.wasm ultra.shop.abi
   ${CLEOS} set account permission ultra.shop active --add-code ultra.shop owner -p ultra.shop
   
   # create ultra.nft account and deploy nft contract
-  ${CLEOS} system newaccount ultra ultra.nft  ${EOS_PUB_KEY} --transfer --stake-net="5000.00000000 UOS" --stake-cpu="5000.00000000 UOS" --gift-ram-kbytes 2500  -p ultra --ultra-id ${ultrashop_id}
+  ${CLEOS} system newaccount ultra ultra.nft  ${EOS_PUB_KEY} --transfer --gift-ram-kbytes 2500  -p ultra --ultra-id ${ultrashop_id}
   ${CLEOS} set contract ultra.nft ${CONTRACT_DIRECTORY}/ultra.nft ultra.nft.wasm ultra.nft.abi
   ${CLEOS} set account permission ultra.nft active --add-code ultra.shop owner -p ultra.nft
   ${CLEOS} set account permission ultra.nft active --add-code -p ultra.nft
 
   # create ultra.mlrp account and deploy mlrp contract
-  ${CLEOS} system newaccount ultra ultra.mlrp  ${EOS_PUB_KEY} --transfer --stake-net="5000.00000000 UOS" --stake-cpu="5000.00000000 UOS" --gift-ram-kbytes 2000  -p ultra --ultra-id ${ultramlrp_id}
+  ${CLEOS} system newaccount ultra ultra.mlrp  ${EOS_PUB_KEY} --transfer --gift-ram-kbytes 2000  -p ultra --ultra-id ${ultramlrp_id}
   ${CLEOS} set contract ultra.mlrp ${CONTRACT_DIRECTORY}/ultra.mlrp ultra.mlrp.wasm ultra.mlrp.abi
   ${CLEOS} push action ultra.mlrp init '[[4,2,1], 365]' -p ultra
 
   # create ultra.promo account and deploy promo contract
-  ${CLEOS} system newaccount ultra ultra.promo  ${EOS_PUB_KEY} --transfer --stake-net="5000.00000000 UOS" --stake-cpu="5000.00000000 UOS" --gift-ram-kbytes 2000  -p ultra --ultra-id ${ultrapromoter_id}
+  ${CLEOS} system newaccount ultra ultra.promo  ${EOS_PUB_KEY} --transfer --gift-ram-kbytes 2000  -p ultra --ultra-id ${ultrapromoter_id}
   ${CLEOS} set contract ultra.promo ${CONTRACT_DIRECTORY}/ultra.promoter ultra.promoter.wasm ultra.promoter.abi
 
   #create ultra.relay account so that users don't need to setup their account permissions anymore
-  ${CLEOS} system newaccount ultra ultra.relay  ${EOS_PUB_KEY} --transfer --stake-net="5000.00000000 UOS" --stake-cpu="5000.00000000 UOS" --gift-ram-kbytes 2500  -p ultra
+  ${CLEOS} system newaccount ultra ultra.relay  ${EOS_PUB_KEY} --transfer --gift-ram-kbytes 2500  -p ultra
   ${CLEOS} set account permission ultra.relay uni --add-code ultra.shop active -p ultra.relay
   ${CLEOS} set account permission ultra.relay uni --add-code ultra.nft active -p ultra.relay
 }
@@ -375,19 +374,19 @@ function setup_test_accounts() {
   ultra_id=$(( ultra_id + 1 ))
 
   # create product owner and user accounts and add ultra.relay@uni permission to their active authority
-  ${CLEOS} system newaccount ultra prodownera ${USER_PUB_KEY} --transfer --stake-net="5000.00000000 UOS" --stake-cpu="5000.00000000 UOS" --gift-ram-kbytes 160  -p ultra --ultra-id ${prodownera_id}
+  ${CLEOS} system newaccount ultra prodownera ${USER_PUB_KEY} --transfer --gift-ram-kbytes 160  -p ultra --ultra-id ${prodownera_id}
   ${CLEOS} set account permission prodownera active '{"threshold": 1,"keys": [{"key": '\"${USER_PUB_KEY}\"',"weight": 1}], "accounts": [{"permission":{"actor":"ultra.relay","permission":"uni"},"weight":1}], "waits": []}' -p prodownera
 
-  ${CLEOS} system newaccount ultra prodownerb ${USER_PUB_KEY} --transfer --stake-net="5000.00000000 UOS" --stake-cpu="5000.00000000 UOS" --gift-ram-kbytes 160  -p ultra --ultra-id ${prodownerb_id}
+  ${CLEOS} system newaccount ultra prodownerb ${USER_PUB_KEY} --transfer --gift-ram-kbytes 160  -p ultra --ultra-id ${prodownerb_id}
   ${CLEOS} set account permission prodownerb active '{"threshold": 1,"keys": [{"key": '\"${USER_PUB_KEY}\"',"weight": 1}], "accounts": [{"permission":{"actor":"ultra.relay","permission":"uni"},"weight":1}], "waits": []}' -p prodownerb
 
-  ${CLEOS} system newaccount ultra usera      ${USER_PUB_KEY} --transfer --stake-net="5000.00000000 UOS" --stake-cpu="5000.00000000 UOS" --gift-ram-kbytes 160  -p ultra --ultra-id ${usera_id}
+  ${CLEOS} system newaccount ultra usera      ${USER_PUB_KEY} --transfer --gift-ram-kbytes 160  -p ultra --ultra-id ${usera_id}
   ${CLEOS} set account permission usera active '{"threshold": 1,"keys": [{"key": '\"${USER_PUB_KEY}\"',"weight": 1}], "accounts": [{"permission":{"actor":"ultra.relay","permission":"uni"},"weight":1}], "waits": []}' -p usera
 
-  ${CLEOS} system newaccount ultra userb      ${USER_PUB_KEY} --transfer --stake-net="5000.00000000 UOS" --stake-cpu="5000.00000000 UOS" --gift-ram-kbytes 160  -p ultra --ultra-id ${userb_id}
+  ${CLEOS} system newaccount ultra userb      ${USER_PUB_KEY} --transfer --gift-ram-kbytes 160  -p ultra --ultra-id ${userb_id}
   ${CLEOS} set account permission userb active '{"threshold": 1,"keys": [{"key": '\"${USER_PUB_KEY}\"',"weight": 1}], "accounts": [{"permission":{"actor":"ultra.relay","permission":"uni"},"weight":1}], "waits": []}' -p userb
 
-  ${CLEOS} system newaccount ultra bitfinex   ${USER_PUB_KEY} --transfer --stake-net="5000.00000000 UOS" --stake-cpu="5000.00000000 UOS" --gift-ram-kbytes 160  -p ultra --ultra-id ${bitfinex_id}
+  ${CLEOS} system newaccount ultra bitfinex   ${USER_PUB_KEY} --transfer --gift-ram-kbytes 160  -p ultra --ultra-id ${bitfinex_id}
   ${CLEOS} set account permission bitfinex active '{"threshold": 1,"keys": [{"key": '\"${USER_PUB_KEY}\"',"weight": 1}], "accounts": [{"permission":{"actor":"ultra.relay","permission":"uni"},"weight":1}], "waits": []}' -p bitfinex
 
   # transfer some funding to usera and userb
@@ -584,5 +583,7 @@ function setup_UOS_blockchain(){
 
 setup_UOS_blockchain
 
-echo "****** END OF KAFKATEST.SH SCRIPT ******"
-# sleep infinity
+# update config.ini
+if [[ $NUMBER_OF_PRODUCERS -gt 0 ]]; then
+  sed -i '/producer-name/c\producer-name = produceracc1' /opt/eosio/producer/settings/config.ini
+fi

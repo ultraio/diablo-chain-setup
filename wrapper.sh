@@ -11,9 +11,9 @@ case $1 in
     shift
     ansible-playbook ansible-tasks-main.yaml ${ANSIBLE_COMMON_OPTIONS} --extra-vars="first_producer_name=eosio" $@
     ;;
-  update)
+  multi-node)
     shift
-    ansible-playbook ansible-tasks-main.yaml ${ANSIBLE_COMMON_OPTIONS} --extra-vars="first_producer_name=produceracc1" $@
+    ansible bootup ${ANSIBLE_COMMON_OPTIONS} -m shell -a '/bin/bash -xc "cd /root/nodeos-bootstrap; ./bootup.sh -p 3; service nodeos_producer restart"; true'
     ;;
   stop-and-erase)
     shift
