@@ -11,10 +11,10 @@ case $1 in
     shift
     ansible-playbook ansible-tasks-main.yaml ${ANSIBLE_COMMON_OPTIONS} --extra-vars="first_producer_name=eosio" $@
     ;;
-  multi-node)
-    shift
-    ansible bootup ${ANSIBLE_COMMON_OPTIONS} -m shell -a '/bin/bash -xc "cd /root/nodeos-bootstrap; ./bootup.sh -p 3; service nodeos_producer restart"; true'
-    ;;
+#  multi-node)
+#    shift
+#    ansible bootup ${ANSIBLE_COMMON_OPTIONS} -m shell -a '/bin/bash -xc "cd /root/nodeos-bootstrap; ./bootup.sh; service nodeos_producer restart"; true'
+#    ;;
   stop-and-erase)
     shift
     ansible all_eos ${ANSIBLE_COMMON_OPTIONS} -m shell -a '/bin/bash -xc "service nodeos_producer stop; service nodeos_api-1 stop; service nodeos_api-2 stop; rm -rf /opt/eosio/{producer,api-1,api-2}/workdir/*; rm -rf /root/nodeos-bootstrap/{bin,contracts}/*; true"' $@

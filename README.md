@@ -77,7 +77,7 @@ Files:
 
 ## Pre-requisites to use this project
 
-1- clone the project
+1- Clone the project
 ```
 git@github.com:ultraio/diablo-chain-setup.git
 ```
@@ -119,11 +119,13 @@ local# ssh -F ./ssh-config bhs-infra-1
 bhs-infra-1# journalctl -u nodeos_producer -f
 ```
 
-4- Run `bootup.sh` to create account, deploy system contracts, etc. on the blockchain.
-```
-local# ./wrapper.sh multi-node
-```
+4- Run `bootup.sh` to create account, deploy system contracts, etc. on the blockchain.  
 All producers but the first one should produce blocks as well. The first producer name should be changed then the producer shoud be restarted to produce blocks again.
+```
+bhs-infra-1# cd /root/nodeos-bootstrap
+bhs-infra-1# ./bootup.sh
+bhs-infra-1# service nodeos_producer restart
+```
 
 5- Make sure that there are lines like this in the logs
 ```
