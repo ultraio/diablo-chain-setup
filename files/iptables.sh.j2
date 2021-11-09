@@ -27,13 +27,18 @@ iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
 # allow loopback connection for convenience
 iptables -A INPUT -i lo -j ACCEPT
 
+{% if inventory_hostname in groups['producer'] %}
+# allow Wireguard connections
+iptables -A INPUT -i ultra -p tcp --dport 9876 -j ACCEPT
+{% endif %}
+
 # default
-# iptables -P INPUT DROP
+iptables -P INPUT DROP
 iptables -P FORWARD ACCEPT
 iptables -P OUTPUT ACCEPT
 
 # flush & accept everything
-iptables -P INPUT ACCEPT
+# iptables -P INPUT ACCEPT
 # iptables -P FORWARD ACCEPT
 # iptables -P OUTPUT ACCEPT
 #
