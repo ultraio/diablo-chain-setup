@@ -1,23 +1,23 @@
 # Diablo Chain - Multinode testnet on OVH dedicated servers (Oct 2021)
 
 This repo is based on [Multinode testnet-benchmark on OVH dedicated servers (June 2020)](https://github.com/ultraio/testnet-benchmark), with several updates.  
-**Currently wireguard and haproxy are not used**.  
+**Currently haproxy is not used**.  
 
 ## Architecture
 
 | HOSTNAME    | LOCATION            | PUBLIC DNS                  | CNAME                | WIREGUARD IP |
 | ----------- | ------------------- | --------------------------- | -------------------- | ------------ |
-| bhs-infra-1 | Bauharnois (Canada) | ns548590.ip-51-79-82.net    |                      |              |
-| bhs-infra-2 | Bauharnois (Canada) | ns572376.ip-51-161-119.net  |                      |              |
-| rbx-infra-1 | Roubaix (France)    | ns3177211.ip-51-210-113.eu  |                      |              |
-| rbx-infra-2 | Roubaix (France)    | ns3162930.ip-51-91-116.eu   |                      |              |
-| vin-infra-1 | Vint Hill (USA)     | ns1011418.ip-135-148-169.us |                      |              |
-| vin-infra-2 | Vint Hill (USA)     | ns1011426.ip-135-148-169.us |                      |              |
+| bhs-infra-1 | Bauharnois (Canada) | ns548590.ip-51-79-82.net    |                      | 192.168.1.1  |
+| bhs-infra-2 | Bauharnois (Canada) | ns572376.ip-51-161-119.net  |                      | 192.168.1.2  |
+| rbx-infra-1 | Roubaix (France)    | ns3177211.ip-51-210-113.eu  |                      | 192.168.1.3  |
+| rbx-infra-2 | Roubaix (France)    | ns3162930.ip-51-91-116.eu   |                      | 192.168.1.4  |
+| vin-infra-1 | Vint Hill (USA)     | ns1011418.ip-135-148-169.us |                      | 192.168.1.5  |
+| vin-infra-2 | Vint Hill (USA)     | ns1011426.ip-135-148-169.us |                      | 192.168.1.6  |
 
 - Servers are named with the following pattern: \<location in three letters\>-\<ovh server type\>.
-- Every server is communicating with each other.
-- Every server *-infra-1 hosts a nodeos producer.
-- Every server *-infra-2 hosts two nodeos api listening HTTP (tcp/8888 and tcp/8889).
+- Every server is communicating with each otherr through Wireguard (= VPN tunnel).
+- Every server *-infra-1 hosts a nodeos producer listening on Wireguard private IP.
+- Every server *-infra-2 hosts two nodeos api listening on Wireguard private IP + listening HTTP (tcp/8888 and tcp/8889).
 
 
 ## Code structure
@@ -30,6 +30,7 @@ Files under `files/currently-not-used/` are originally under `files/` in [Multin
 ├── ansible-task-api.yaml
 ├── ansible-tasks-main.yaml
 ├── ansible-vars.yaml
+├── bhs-infra-2.conf
 ├── files
 │   ├── blackbox.yaml
 │   ├── blackbox_exporter.service
@@ -42,16 +43,25 @@ Files under `files/currently-not-used/` are originally under `files/` in [Multin
 │   │   │   ├── certbot-haproxy.sh.j2
 │   │   │   ├── dhparam
 │   │   │   └── haproxy.cfg.j2
-│   │   ├── iptables.sh.j2
-│   │   ├── sshd_config
-│   │   └── ultra.conf.j2
+│   │   └── sshd_config
+│   ├── eosio.bios.1.8.3
+│   │   ├── eosio.bios.abi
+│   │   └── eosio.bios.wasm
 │   ├── genesis.json
+│   ├── iptables.sh.j2
 │   ├── jail.local
+│   ├── librdkafka
+│   │   ├── librdkafka++.so.1
+│   │   └── librdkafka.so.1
 │   ├── node_exporter.service
 │   ├── nodeos_api.service.j2
 │   ├── nodeos_producer.service
 │   ├── start.sh
-│   └── systemd_exporter.service
+│   ├── tmp
+│   ├── systemd_exporter.service
+│   └── ultra.conf.j2
+├── scripts
+│   └── get_asset.sh
 ├── ssh-config
 └── wrapper.sh
 ```
@@ -65,28 +75,30 @@ Files:
 - `files/config.ini.(api|producer).j2` template for the nodeos api/producer
 - `files/genesis.json` the config file used on the first startup of a nodeos instance to create the local db
 - `files/currently-not-used/haproxy/*` config of haproxy
-- `files/currently-not-used/iptables.sh.j2` iptables rules
+- `files/iptables.sh.j2` iptables rules
 - `files/jail.local` fail2ban config file
 - `files/node_exporter.service`: systemd service configuration of node-exporter
 - `files/nodeos_(api|producer).service`: systemd service configuration of nodeos api & producer
 - `files/start.sh` the command executed by the nodeos containers at startup.
-- `files/tmp` directory not pushed into git repo where eosio bins, contracts & libs will be put before copying them to remote servers
-- `files/currently-not-used/ultra.conf.j2` wireguard configuration
+- `files/tmp` directory not pushed into git repo where eosio binaries and contracts will be put before copying them to remote servers
+- `files/ultra.conf.j2` wireguard configuration
 - `ssh-config` the ssh config file to pass with ssh via `-F`option
 - `wrapper.sh` the wrapper to launch tasks
 
 ## Pre-requisites to use this project
 
-1- Clone the project
+1- Clone the project.
 ```
 git@github.com:ultraio/diablo-chain-setup.git
 ```
 
-2- [Install ansible](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html)
+2- [Install ansible](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html).
 
-3- Create private key file `~/.ssh/benchmark-testnet.rsa` with ssh private key to connect to root@\<server\> via ssh. Otherwise update `ssh-config` in root of the project accordingly (Note: `devops.rsa` will work as well). Don't forget to update `~/ssh/benchmark-testnet.rsa` with correct permissions: `chmod 400 ~/.ssh/benchmark-testnet.rsa`
+3- At the root of project, create a file `github_token` with gitub access token.
 
-4- Test SSH connection
+4- Create private key file `~/.ssh/benchmark-testnet.rsa` with ssh private key to connect to root@\<server\> via ssh. Otherwise update `ssh-config` in root of the project accordingly (Note: `devops.rsa` will work as well). Don't forget to update `~/ssh/benchmark-testnet.rsa` with correct permissions: `chmod 400 ~/.ssh/benchmark-testnet.rsa`.
+
+5- Test SSH connection.
 ```
 #1st test
 local# ssh -F ./ssh-config bhs-infra-1
@@ -103,7 +115,7 @@ local# ./wrapper.sh stop-and-erase
 ```
 
 1- Create file tree, deploy config and files, create containers.  
-docker image in Google Cloud Storage is specified as `IMAGE` variable in `wrapper.sh`. docker image should be downloaded beforehand or connection to Google Cloud Storage should be established.
+In `wrapper.sh`, nodeos binaries version for producer, nodeos binaries version for api, and `eosio.contracts` version are specified as `PRODUCER_BIN_VERSION`, `API_BIN_VERSION`, and `CONTRACTS_VERSION` variable, respectively.
 ```
 local# ./wrapper.sh bootup
 ```
@@ -147,6 +159,6 @@ Via
 
 ### e.g. Update nodeos version
 
-0- Edit `IMAGE` variable in `wrapper.sh`.
+0- Edit `PRODUCER_BIN_VERSION`, `API_BIN_VERSION`, and `CONTRACTS_VERSION` variables in `wrapper.sh`.
 
 1- Erase & setup new testnet following part [Bootstrap of multinode testnet](#bootstrap-of-multinode-testnet).

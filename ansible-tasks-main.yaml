@@ -90,39 +90,39 @@
       - tree
       - jq
 
-#- hosts: all_eos
-#  tags: hosts
-#  gather_facts: no
-#  tasks:
-#  - name: "[all_eos] fill /etc/hosts file"
-#    lineinfile:
-#      path: /etc/hosts
-#      regexp: "{{ item }}"
-#      line: "{{ vars[item]['wg_ip'] }} {{ item }}"
-#    loop: "{{ groups['all_eos'] }}"
+- hosts: all_eos
+  tags: hosts
+  gather_facts: no
+  tasks:
+  - name: "[all_eos] fill /etc/hosts file"
+    lineinfile:
+      path: /etc/hosts
+      regexp: "{{ item }}"
+      line: "{{ vars[item]['wg_ip'] }} {{ item }}"
+    loop: "{{ groups['all_eos'] }}"
 
-#- hosts: all_eos
-#  tags: wireguard
-#  gather_facts: no
-#  tasks:
-#  - name: "[all_eos] install wireguard"
-#    apt:
-#      name: "{{ item }}"
-#      update_cache: yes
-#      cache_valid_time: 3600
-#      autoclean: yes
-#      autoremove: yes
-#    loop:
-#      - wireguard
-#      - resolvconf
-#  - name: "[all_eos] set /etc/wireguard/ultra.conf"
-#    template:
-#      src: "{{ playbook_dir }}/files/ultra.conf.j2"
-#      dest: "/etc/wireguard/ultra.conf"
-#      owner: root
-#      mode: 0444
-#  - name: "[all_eos] run wireguard"
-#    shell: "if ! { ip addr | fgrep ultra ;}; then wg-quick up /etc/wireguard/ultra.conf; fi"
+- hosts: all_eos
+  tags: wireguard
+  gather_facts: no
+  tasks:
+  - name: "[all_eos] install wireguard"
+    apt:
+      name: "{{ item }}"
+      update_cache: yes
+      cache_valid_time: 3600
+      autoclean: yes
+      autoremove: yes
+    loop:
+      - wireguard
+      - resolvconf
+  - name: "[all_eos] set /etc/wireguard/ultra.conf"
+    template:
+      src: "{{ playbook_dir }}/files/ultra.conf.j2"
+      dest: "/etc/wireguard/ultra.conf"
+      owner: root
+      mode: 0444
+  - name: "[all_eos] run wireguard"
+    shell: "if ! { ip addr | fgrep ultra ;}; then wg-quick up /etc/wireguard/ultra.conf; fi"
 
 - hosts: all_eos
   tags: node_exporter
@@ -530,35 +530,35 @@
       owner: root
       mode: 0544
 
-#- hosts: all_eos
-#  tags: iptables
-#  gather_facts: yes
-#  tasks:
-#  - set_fact:
-#      NAT_IPS: "34.77.128.115,104.155.53.214,35.195.86.56"
-#  - name: "[all_eos] setup iptables rules (1)"
-#    template:
-#      src: "{{ playbook_dir }}/files/iptables.sh.j2"
-#      dest: "/var/tmp/iptables.sh"
-#      owner: root
-#      mode: 0544
-#  - name: "[all_eos] setup iptables rules (2)"
-#    shell: /var/tmp/iptables.sh
-#  - name: "[all_eos] setup iptables-persistent (1)"
-#    debconf:
-#      name: "iptables-persistent"
-#      question: "iptables-persistent/{{ item }}"
-#      value: "false"
-#      vtype: "boolean"
-#    with_items:
-#      - autosave_v4
-#      - autosave_v6
-#  - name: "[all_eos] setup iptables-persistent (2)"
-#    apt:
-#      name: "iptables-persistent"
-#      update_cache: yes
-#      cache_valid_time: 3600
-#      autoclean: yes
-#      autoremove: yes
-#  - name: "[all_eos] persist iptables"
-#    shell: iptables-save > /etc/iptables/rules.v4
+- hosts: all_eos
+  tags: iptables
+  gather_facts: yes
+  tasks:
+  - set_fact:
+      NAT_IPS: "34.77.128.115,104.155.53.214,35.195.86.56"
+  - name: "[all_eos] setup iptables rules (1)"
+    template:
+      src: "{{ playbook_dir }}/files/iptables.sh.j2"
+      dest: "/var/tmp/iptables.sh"
+      owner: root
+      mode: 0544
+  - name: "[all_eos] setup iptables rules (2)"
+    shell: /var/tmp/iptables.sh
+  - name: "[all_eos] setup iptables-persistent (1)"
+    debconf:
+      name: "iptables-persistent"
+      question: "iptables-persistent/{{ item }}"
+      value: "false"
+      vtype: "boolean"
+    with_items:
+      - autosave_v4
+      - autosave_v6
+  - name: "[all_eos] setup iptables-persistent (2)"
+    apt:
+      name: "iptables-persistent"
+      update_cache: yes
+      cache_valid_time: 3600
+      autoclean: yes
+      autoremove: yes
+  - name: "[all_eos] persist iptables"
+    shell: iptables-save > /etc/iptables/rules.v4

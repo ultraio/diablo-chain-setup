@@ -7,18 +7,18 @@ max-clients = 50
 p2p-max-nodes-per-host = 10
 
 http-server-address = {{ vars[inventory_hostname]['public_dns'] }}:{{ vars[inventory_hostname][api]['http'] }}
-p2p-listen-endpoint = {{ vars[inventory_hostname]['public_dns'] }}:{{ vars[inventory_hostname][api]['p2p'] }}
+p2p-listen-endpoint = {{ inventory_hostname }}:{{ vars[inventory_hostname][api]['p2p'] }}
 
 #peers
 #producers
 {% for host in groups['producer'] %}
-p2p-peer-address = {{ vars[host]['public_dns'] }}:{{ vars[host]['producer']['p2p'] }}
+p2p-peer-address = {{ host }}:{{ vars[host]['producer']['p2p'] }}
 {% endfor %}
 #api
 {% for host in groups['api'] %}
 {% if host!=inventory_hostname %}
-p2p-peer-address = {{ vars[host]['public_dns'] }}:{{ vars[host]['api-1']['p2p'] }}
-p2p-peer-address = {{ vars[host]['public_dns'] }}:{{ vars[host]['api-2']['p2p'] }}
+p2p-peer-address = {{ host }}:{{ vars[host]['api-1']['p2p'] }}
+p2p-peer-address = {{ host }}:{{ vars[host]['api-2']['p2p'] }}
 {% endif %}
 {% endfor %}
 
