@@ -23,7 +23,7 @@
     dest: "/opt/eosio/{{ api }}/settings/config.ini"
 - name: "[api] copy bin"
   copy:
-    src: "{{ playbook_dir }}/files/tmp/bin/{{ item }}"
+    src: "{{ playbook_dir }}/files/tmp/api-bin/{{ item }}"
     dest: "/opt/eosio/{{ api }}/bin/{{ item }}"
     owner: root
     mode: 0544

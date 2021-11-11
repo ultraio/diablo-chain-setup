@@ -1,10 +1,12 @@
 #!/bin/bash
 
-IMAGE='eu.gcr.io/acoustic-arch-243714/nodeos:2.0.9-1.23.0'
+PRODUCER_BIN_VERSION='2.0.9-1.15.0-bp'
+API_BIN_VERSION='2.0.9-1.15.0'
+CONTRACTS_VERSION='1.22.0'
 
 export ANSIBLE_SSH_ARGS=${ANSIBLE_SSH_ARGS:-"-F $(dirname $0)/ssh-config -o ControlMaster=auto -o ControlPersist=18000 -o PreferredAuthentications=publickey"}
 export ANSIBLE_SSH_PIPELINING=true
-ANSIBLE_COMMON_OPTIONS=${ANSIBLE_COMMON_OPTIONS:-"-u root -e @$(dirname $0)/ansible-vars.yaml -e IMAGE=${IMAGE} -i ansible-inventory"}
+ANSIBLE_COMMON_OPTIONS=${ANSIBLE_COMMON_OPTIONS:-"-u root -e @$(dirname $0)/ansible-vars.yaml -e PRODUCER_BIN_VERSION=${PRODUCER_BIN_VERSION} -e API_BIN_VERSION=${API_BIN_VERSION} -e CONTRACTS_VERSION=${CONTRACTS_VERSION} -i ansible-inventory"}
 
 case $1 in
   bootup)
