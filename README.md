@@ -5,20 +5,19 @@ This repo is based on [Multinode testnet-benchmark on OVH dedicated servers (Jun
 
 ## Architecture
 
-| HOSTNAME    | LOCATION            | PUBLIC DNS                  | CNAME                | WIREGUARD IP |
-| ----------- | ------------------- | --------------------------- | -------------------- | ------------ |
-| bhs-infra-1 | Bauharnois (Canada) | ns548590.ip-51-79-82.net    |                      | 192.168.1.1  |
-| bhs-infra-2 | Bauharnois (Canada) | ns572376.ip-51-161-119.net  |                      | 192.168.1.2  |
-| rbx-infra-1 | Roubaix (France)    | ns3177211.ip-51-210-113.eu  |                      | 192.168.1.3  |
-| rbx-infra-2 | Roubaix (France)    | ns3162930.ip-51-91-116.eu   |                      | 192.168.1.4  |
-| vin-infra-1 | Vint Hill (USA)     | ns1011418.ip-135-148-169.us |                      | 192.168.1.5  |
-| vin-infra-2 | Vint Hill (USA)     | ns1011426.ip-135-148-169.us |                      | 192.168.1.6  |
+| HOSTNAME        | LOCATION | PUBLIC DNS                  | CNAME | WIREGUARD IP |
+| --------------- | -------- | --------------------------- | ----- | ------------ |
+| diablo-france-1 | France   | ns3177211.ip-51-210-113.eu  |       | 192.168.1.1  |
+| diablo-france-2 | France   | ns3162930.ip-51-91-116.eu   |       | 192.168.1.2  |
+| diablo-canada-1 | Canada   | ns548590.ip-51-79-82.net    |       | 192.168.2.1  |
+| diablo-canada-2 | Canada   | ns572376.ip-51-161-119.net  |       | 192.168.2.2  |
+| diablo-us-1     | US       | ns1011418.ip-135-148-169.us |       | 192.168.3.1  |
+| diablo-us-2     | US       | ns1011426.ip-135-148-169.us |       | 192.168.3.2  |
 
 - Servers are named with the following pattern: \<location in three letters\>-\<ovh server type\>.
 - Every server is communicating with each otherr through Wireguard (= VPN tunnel).
-- Every server *-infra-1 hosts a nodeos producer listening on Wireguard private IP.
-- Every server *-infra-2 hosts two nodeos api listening on Wireguard private IP + listening HTTP (tcp/8888 and tcp/8889).
-
+- Every server diablo-*-1 hosts a nodeos producer listening on Wireguard private IP.
+- Every server diablo-*-1 hosts one nodeos api listening on Wireguard private IP + listening HTTP (tcp/8888).
 
 ## Code structure
 Files under `files/currently-not-used/` are originally under `files/` in [Multinode testnet-benchmark on OVH dedicated servers (June 2020)](https://github.com/ultraio/testnet-benchmark), but they are currently not used.   
@@ -30,7 +29,6 @@ Files under `files/currently-not-used/` are originally under `files/` in [Multin
 ├── ansible-task-api.yaml
 ├── ansible-tasks-main.yaml
 ├── ansible-vars.yaml
-├── bhs-infra-2.conf
 ├── files
 │   ├── blackbox.yaml
 │   ├── blackbox_exporter.service
@@ -101,7 +99,7 @@ git@github.com:ultraio/diablo-chain-setup.git
 5- Test SSH connection.
 ```
 #1st test
-local# ssh -F ./ssh-config bhs-infra-1
+local# ssh -F ./ssh-config diablo-france-1
 
 #2nd test
 local# MODULE=ping ./wrapper.sh ansible all_eos
@@ -124,27 +122,27 @@ local# ./wrapper.sh bootup
 ```
 local# ./wrapper.sh start-all
 ```
-At this point, only the first producer on `bhs-infra-1` should produce blocks.  
-Log in to `bhs-infra-1`  and check the logs.
+At this point, only the first producer on `diablo-france-1` should produce blocks.  
+Log in to `diablo-france-1`  and check the logs.
 ```
-local# ssh -F ./ssh-config bhs-infra-1
-bhs-infra-1# journalctl -u nodeos_producer -f
+local# ssh -F ./ssh-config diablo-france-1
+diablo-france-1# journalctl -u nodeos_producer -f
 ```
 
 4- Run `bootup.sh` to create account, deploy system contracts, etc. on the blockchain.  
 All producers but the first one should produce blocks as well. The first producer name should be changed then the producer shoud be restarted to produce blocks again.
 ```
-bhs-infra-1# cd /root/nodeos-bootstrap
-bhs-infra-1# ./bootup.sh
-bhs-infra-1# service nodeos_producer restart
+diablo-france-1# cd /root/nodeos-bootstrap
+diablo-france-1# ./bootup.sh
+diablo-france-1# service nodeos_producer restart
 ```
 
 5- Make sure that there are lines like this in the logs
 ```
-bhs-infra-1# journalctl -u nodeos_producer -f
+diablo-france-1# journalctl -u nodeos_producer -f
 ...
-Nov 01 02:09:35 bhs-infra-1 start.sh[11693]: info  2021-11-01T02:09:35.308 nodeos    producer_plugin.cpp:604       on_incoming_block    ] Received block 874d1eb1eb2a7620... #156 @ 2021-11-01T02:09:35.500 signed by produceracc3 [trxs: 0, lib: 108, conf: 0, latency: -191 ms]
-Nov 01 02:09:35 bhs-infra-1 start.sh[11693]: info  2021-11-01T02:09:35.902 nodeos    producer_plugin.cpp:2908      produce_block        ] Produced block 20f62acff61d7ca7... #157 @ 2021-11-01T02:09:36.000 signed by produceracc1 [trxs: 0, lib: 120, confirmed: 24]
+Nov 01 02:09:35 diablo-france-1 start.sh[11693]: info  2021-11-01T02:09:35.308 nodeos    producer_plugin.cpp:604       on_incoming_block    ] Received block 874d1eb1eb2a7620... #156 @ 2021-11-01T02:09:35.500 signed by produceracc3 [trxs: 0, lib: 108, conf: 0, latency: -191 ms]
+Nov 01 02:09:35 diablo-france-1 start.sh[11693]: info  2021-11-01T02:09:35.902 nodeos    producer_plugin.cpp:2908      produce_block        ] Produced block 20f62acff61d7ca7... #157 @ 2021-11-01T02:09:36.000 signed by produceracc1 [trxs: 0, lib: 120, confirmed: 24]
 ...
 ```
 The important part is "signed by produceraccX", where X must be between 1-3 to confirm every node producer is actually producing block as expected. Producers produce 12 blocks every 6 seconds in turn. 

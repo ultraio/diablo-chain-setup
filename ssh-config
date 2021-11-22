@@ -1,32 +1,32 @@
 UserKnownHostsFile /dev/null
 StrictHostKeyChecking no
 
-Host bhs-infra-1
-  Hostname ns548590.ip-51-79-82.net
-  User root
-  IdentityFile ~/.ssh/benchmark-testnet.rsa
-
-Host bhs-infra-2
-  Hostname ns572376.ip-51-161-119.net
-  User root
-  IdentityFile ~/.ssh/benchmark-testnet.rsa
-
-Host rbx-infra-1
+Host diablo-france-1
   Hostname ns3177211.ip-51-210-113.eu
   User root
-  IdentityFile ~/.ssh/benchmark-testnet.rsa
+  IdentityFile ~/.ssh/blockchain-infra.rsa
 
-Host rbx-infra-2
+Host diablo-france-2
   Hostname ns3162930.ip-51-91-116.eu
   User root
-  IdentityFile ~/.ssh/benchmark-testnet.rsa
+  IdentityFile ~/.ssh/blockchain-infra.rsa
 
-Host vin-infra-1
+Host diablo-canada-1
+  Hostname ns548590.ip-51-79-82.net 
+  User root
+  IdentityFile ~/.ssh/blockchain-infra.rsa
+
+Host diablo-canada-2
+  Hostname ns572376.ip-51-161-119.net
+  User root
+  IdentityFile ~/.ssh/blockchain-infra.rsa
+
+Host diablo-us-1
   Hostname ns1011418.ip-135-148-169.us
   User root
-  IdentityFile ~/.ssh/benchmark-testnet.rsa
+  IdentityFile ~/.ssh/blockchain-infra.rsa
 
-Host vin-infra-2
+Host diablo-us-2
   Hostname ns1011426.ip-135-148-169.us
   User root
-  IdentityFile ~/.ssh/benchmark-testnet.rsa
+  IdentityFile ~/.ssh/blockchain-infra.rsa
