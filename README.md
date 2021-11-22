@@ -207,6 +207,6 @@ Via
 
 ### e.g. Update nodeos version
 
-0 - Edit `PRODUCER_BIN_VERSION`, `API_BIN_VERSION`, and `CONTRACTS_VERSION` variables in `wrapper.sh`.
+0) - Edit `PRODUCER_BIN_VERSION`, `API_BIN_VERSION`, and `CONTRACTS_VERSION` variables in `wrapper.sh`.
 
-1 - Erase & setup new testnet following part [Bootstrap of multinode testnet](#bootstrap-of-multinode-testnet).
+1) - Erase & setup new testnet following part [Bootstrap of multinode testnet](#bootstrap-of-multinode-testnet).
