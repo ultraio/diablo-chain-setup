@@ -1,7 +1,30 @@
 # Diablo Chain - Multinode testnet on OVH dedicated servers (Oct 2021)
 
-This repo is based on [Multinode testnet-benchmark on OVH dedicated servers (June 2020)](https://github.com/ultraio/testnet-benchmark), with several updates.  
+This repo is based on [Multinode testnet-benchmark on OVH dedicated servers (June 2020)](https://github.com/ultraio/testnet-benchmark), with several updates. 
+
 **Currently haproxy is not used**.  
+
+## Table of Contents
+
+- [Diablo Chain - Multinode testnet on OVH dedicated servers (Oct 2021)](#diablo-chain---multinode-testnet-on-ovh-dedicated-servers-oct-2021)
+  - [Table of Contents](#table-of-contents)
+  - [Architecture](#architecture)
+  - [Code structure](#code-structure)
+  - [Pre-requisites to use this project](#pre-requisites-to-use-this-project)
+    - [1. Clone the project.](#1-clone-the-project)
+    - [2. Install Ansible](#2-install-ansible)
+    - [3. Create `github_token`](#3-create-github_token)
+    - [4. Create Private Key](#4-create-private-key)
+    - [5. Test](#5-test)
+  - [Bootstrap of Multinode Test Network](#bootstrap-of-multinode-test-network)
+    - [1. Clean & Purge](#1-clean--purge)
+    - [2. Create file tree, deploy config and files, create containers.](#2-create-file-tree-deploy-config-and-files-create-containers)
+    - [3. Start Nodes](#3-start-nodes)
+    - [4. Bootup](#4-bootup)
+    - [5. Check Logs](#5-check-logs)
+  - [Monitoring](#monitoring)
+  - [Update](#update)
+    - [e.g. Update nodeos version](#eg-update-nodeos-version)
 
 ## Architecture
 
@@ -85,19 +108,32 @@ Files:
 
 ## Pre-requisites to use this project
 
-1- Clone the project.
+### 1. Clone the project.
+
+Clone the project into your `~/ultra` folder.
+
 ```
-git@github.com:ultraio/diablo-chain-setup.git
+git clone git@github.com:ultraio/diablo-chain-setup.git
 ```
 
-2- [Install ansible](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html).
+### 2. Install Ansible
 
-3- At the root of project, create a file `github_token` with gitub access token.
+[https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html)
 
-4- Create private key file `~/.ssh/benchmark-testnet.rsa` with ssh private key to connect to root@\<server\> via ssh. Otherwise update `ssh-config` in root of the project accordingly (Note: `devops.rsa` will work as well). Don't forget to update `~/ssh/benchmark-testnet.rsa` with correct permissions: `chmod 400 ~/.ssh/benchmark-testnet.rsa`.
+### 3. Create `github_token`
 
-5- Test SSH connection.
-```
+At the root of project, create a file `github_token` with gitub access token.
+
+
+### 4. Create Private Key
+
+Create private key file `~/.ssh/benchmark-testnet.rsa` with ssh private key to connect to root@\<server\> via ssh. Otherwise update `ssh-config` in root of the project accordingly (Note: `devops.rsa` will work as well). Don't forget to update `~/ssh/benchmark-testnet.rsa` with correct permissions: `chmod 400 ~/.ssh/benchmark-testnet.rsa`.
+
+### 5. Test 
+
+Test SSH connection.
+
+```bash
 #1st test
 local# ssh -F ./ssh-config diablo-france-1
 
@@ -105,20 +141,30 @@ local# ssh -F ./ssh-config diablo-france-1
 local# MODULE=ping ./wrapper.sh ansible all_eos
 ```
 
-## Bootstrap of multinode testnet
+## Bootstrap of Multinode Test Network
 
-0- If not starting from a fresh install, the older install must be removed like the following:
+Please keep in mind that when using these commands it will wipe the existing chain entirely.
+
+These commands should not be used unless we're rebooting a fresh chain.
+
+---
+
+### 1. Clean & Purge
+
+If not starting from a fresh install, the older install must be removed like the following:
 ```
 local# ./wrapper.sh stop-and-erase
 ```
 
-1- Create file tree, deploy config and files, create containers.  
+### 2. Create file tree, deploy config and files, create containers.  
 In `wrapper.sh`, nodeos binaries version for producer, nodeos binaries version for api, and `eosio.contracts` version are specified as `PRODUCER_BIN_VERSION`, `API_BIN_VERSION`, and `CONTRACTS_VERSION` variable, respectively.
 ```
 local# ./wrapper.sh bootup
 ```
 
-3- Start all the nodeos (3 nodeos-producer, 6 nodeos-api).
+### 3. Start Nodes
+
+Start all the nodeos (3 nodeos-producer, 6 nodeos-api).
 ```
 local# ./wrapper.sh start-all
 ```
@@ -129,7 +175,9 @@ local# ssh -F ./ssh-config diablo-france-1
 diablo-france-1# journalctl -u nodeos_producer -f
 ```
 
-4- Run `bootup.sh` to create account, deploy system contracts, etc. on the blockchain.  
+### 4. Bootup
+
+Run `bootup.sh` to create account, deploy system contracts, etc. on the blockchain.  
 All producers but the first one should produce blocks as well. The first producer name should be changed then the producer shoud be restarted to produce blocks again.
 ```
 diablo-france-1# cd /root/nodeos-bootstrap
@@ -137,7 +185,9 @@ diablo-france-1# ./bootup.sh
 diablo-france-1# service nodeos_producer restart
 ```
 
-5- Make sure that there are lines like this in the logs
+### 5. Check Logs
+
+Make sure that there are lines like this in the logs
 ```
 diablo-france-1# journalctl -u nodeos_producer -f
 ...
@@ -157,6 +207,6 @@ Via
 
 ### e.g. Update nodeos version
 
-0- Edit `PRODUCER_BIN_VERSION`, `API_BIN_VERSION`, and `CONTRACTS_VERSION` variables in `wrapper.sh`.
+0 - Edit `PRODUCER_BIN_VERSION`, `API_BIN_VERSION`, and `CONTRACTS_VERSION` variables in `wrapper.sh`.
 
-1- Erase & setup new testnet following part [Bootstrap of multinode testnet](#bootstrap-of-multinode-testnet).
+1 - Erase & setup new testnet following part [Bootstrap of multinode testnet](#bootstrap-of-multinode-testnet).
