@@ -6,8 +6,8 @@ agent-name = "Producer"
 max-clients = 50
 p2p-max-nodes-per-host = 10
 
-http-server-address = 127.0.0.1:{{ vars[inventory_hostname]['producer']['http'] }}
-p2p-listen-endpoint = {{ inventory_hostname }}:{{ vars[inventory_hostname]['producer']['p2p'] }}
+http-server-address = 0.0.0.0:{{ vars[inventory_hostname]['producer']['http'] }}
+p2p-listen-endpoint = 0.0.0.0:{{ vars[inventory_hostname]['producer']['p2p'] }}
 
 #peers
 #producers

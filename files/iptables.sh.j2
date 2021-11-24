@@ -9,8 +9,8 @@ iptables -A INPUT -i {{ ansible_default_ipv4.interface }} -p tcp --dport 22 -m s
 
 {% if inventory_hostname in groups['api'] %}
 # allow http connections
-iptables -A INPUT -i {{ ansible_default_ipv4.interface }} -p tcp --dport 8888 -m state --state NEW,ESTABLISHED -j ACCEPT
-iptables -A INPUT -i {{ ansible_default_ipv4.interface }} -p tcp --dport 8889 -m state --state NEW,ESTABLISHED -j ACCEPT
+iptables -I INPUT -p tcp --dport 8888 -j ACCEPT
+iptables -I INPUT -p tcp --dport 8889 -j ACCEPT
 {% endif %}
 
 # allow metrics exporter scraping from k8s production NAT IPs

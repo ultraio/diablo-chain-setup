@@ -19,7 +19,7 @@ This repo is based on [Multinode testnet-benchmark on OVH dedicated servers (Jun
   - [Bootstrap of Multinode Test Network](#bootstrap-of-multinode-test-network)
     - [1. Clean & Purge](#1-clean--purge)
     - [2. Create file tree, deploy config and files, create containers.](#2-create-file-tree-deploy-config-and-files-create-containers)
-    - [3. Start Nodes](#3-start-nodes)
+    - [3. Start Nodes (Optional)](#3-start-nodes-optional)
     - [4. Bootup](#4-bootup)
     - [5. Check Logs](#5-check-logs)
   - [Monitoring](#monitoring)
@@ -30,12 +30,12 @@ This repo is based on [Multinode testnet-benchmark on OVH dedicated servers (Jun
 
 | HOSTNAME        | LOCATION | PUBLIC DNS                  | CNAME | WIREGUARD IP |
 | --------------- | -------- | --------------------------- | ----- | ------------ |
-| diablo-france-1 | France   | ns3177211.ip-51-210-113.eu  |       | 192.168.1.1  |
-| diablo-france-2 | France   | ns3162930.ip-51-91-116.eu   |       | 192.168.1.2  |
-| diablo-canada-1 | Canada   | ns548590.ip-51-79-82.net    |       | 192.168.2.1  |
-| diablo-canada-2 | Canada   | ns572376.ip-51-161-119.net  |       | 192.168.2.2  |
-| diablo-us-1     | US       | ns1011418.ip-135-148-169.us |       | 192.168.3.1  |
-| diablo-us-2     | US       | ns1011426.ip-135-148-169.us |       | 192.168.3.2  |
+| diablo-france-1 | France   | ns3177211.ip-51-210-113.eu  |       | 10.20.1.1    |
+| diablo-france-2 | France   | ns3162930.ip-51-91-116.eu   |       | 10.20.1.2    |
+| diablo-canada-1 | Canada   | ns548590.ip-51-79-82.net    |       | 10.20.2.1    |
+| diablo-canada-2 | Canada   | ns572376.ip-51-161-119.net  |       | 10.20.2.2    |
+| diablo-us-1     | US       | ns1011418.ip-135-148-169.us |       | 10.20.3.1    |
+| diablo-us-2     | US       | ns1011426.ip-135-148-169.us |       | 10.20.3.2    |
 
 - Servers are named with the following pattern: \<location in three letters\>-\<ovh server type\>.
 - Every server is communicating with each otherr through Wireguard (= VPN tunnel).
@@ -147,6 +147,10 @@ Please keep in mind that when using these commands it will wipe the existing cha
 
 These commands should not be used unless we're rebooting a fresh chain.
 
+All `nodeos` binaries can be found in the `/opt/eosio` directory. There will be additional folders to check additional data.
+
+_**If you only want to setup the machine(s) do Steps 1 & 2**_
+
 ---
 
 ### 1. Clean & Purge
@@ -162,9 +166,11 @@ In `wrapper.sh`, nodeos binaries version for producer, nodeos binaries version f
 local# ./wrapper.sh bootup
 ```
 
-### 3. Start Nodes
+_**If you only want to setup the machine(s) stop here.**_
 
-Start all the nodeos (3 nodeos-producer, 6 nodeos-api).
+### 3. Start Nodes (Optional)
+
+Start all the nodeos (3 nodeos-producer, 3 nodeos-api).
 ```
 local# ./wrapper.sh start-all
 ```
