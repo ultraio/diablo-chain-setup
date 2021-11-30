@@ -6,8 +6,8 @@ agent-name = "Producer"
 max-clients = 50
 p2p-max-nodes-per-host = 10
 
-http-server-address = 127.0.0.1:{{ vars[inventory_hostname]['producer']['http'] }}
-p2p-listen-endpoint = {{ inventory_hostname }}:{{ vars[inventory_hostname]['producer']['p2p'] }}
+http-server-address = 0.0.0.0:{{ vars[inventory_hostname]['producer']['http'] }}
+p2p-listen-endpoint = 0.0.0.0:{{ vars[inventory_hostname]['producer']['p2p'] }}
 
 #peers
 #producers
@@ -19,7 +19,6 @@ p2p-peer-address = {{ host }}:{{ vars[host]['producer']['p2p'] }}
 #api
 {% for host in groups['api'] %}
 p2p-peer-address = {{ host }}:{{ vars[host]['api-1']['p2p'] }}
-p2p-peer-address = {{ host }}:{{ vars[host]['api-2']['p2p'] }}
 {% endfor %}
 
 enable-stale-production  = true
@@ -28,7 +27,7 @@ pause-on-startup = false
 max-transaction-time = 5000
 http-max-response-time-ms = 30000
 
-{% if inventory_hostname=='bhs-infra-1' %}
+{% if inventory_hostname=='diablo-france-1' %}
 producer-name = {{ first_producer_name }}
 {% else %}
 producer-name = {{ vars[inventory_hostname]['producer']['name'] }}

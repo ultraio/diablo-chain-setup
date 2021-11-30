@@ -1,27 +1,27 @@
-bhs-infra-[1:2]
-rbx-infra-[1:2]
-vin-infra-[1:2]
+diablo-france-[1:2]
+diablo-canada-[1:2]
+diablo-us-[1:2]
 
 [all_eos]
-bhs-infra-[1:2]
-rbx-infra-[1:2]
-vin-infra-[1:2]
+diablo-france-[1:2]
+diablo-canada-[1:2]
+diablo-us-[1:2]
 
 [all_eos:vars]
 ansible_python_interpreter=/usr/bin/python3
 
 [producer]
-bhs-infra-1
-rbx-infra-1
-vin-infra-1
+diablo-france-1
+diablo-canada-1
+diablo-us-1
 
 [api]
-bhs-infra-2
-rbx-infra-2
-vin-infra-2
+diablo-france-2
+diablo-canada-2
+diablo-us-2
 
 [haproxy:children]
 api
 
 [bootup]
-bhs-infra-1
+diablo-france-1

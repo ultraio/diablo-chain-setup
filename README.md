@@ -1,24 +1,46 @@
 # Diablo Chain - Multinode testnet on OVH dedicated servers (Oct 2021)
 
-This repo is based on [Multinode testnet-benchmark on OVH dedicated servers (June 2020)](https://github.com/ultraio/testnet-benchmark), with several updates.  
+This repo is based on [Multinode testnet-benchmark on OVH dedicated servers (June 2020)](https://github.com/ultraio/testnet-benchmark), with several updates. 
+
 **Currently haproxy is not used**.  
+
+## Table of Contents
+
+- [Diablo Chain - Multinode testnet on OVH dedicated servers (Oct 2021)](#diablo-chain---multinode-testnet-on-ovh-dedicated-servers-oct-2021)
+  - [Table of Contents](#table-of-contents)
+  - [Architecture](#architecture)
+  - [Code structure](#code-structure)
+  - [Pre-requisites to use this project](#pre-requisites-to-use-this-project)
+    - [1. Clone the project.](#1-clone-the-project)
+    - [2. Install Ansible](#2-install-ansible)
+    - [3. Create `github_token`](#3-create-github_token)
+    - [4. Create Private Key](#4-create-private-key)
+    - [5. Test](#5-test)
+  - [Bootstrap of Multinode Test Network](#bootstrap-of-multinode-test-network)
+    - [1. Clean & Purge](#1-clean--purge)
+    - [2. Create file tree, deploy config and files, create containers.](#2-create-file-tree-deploy-config-and-files-create-containers)
+    - [3. Start Nodes (Optional)](#3-start-nodes-optional)
+    - [4. Bootup](#4-bootup)
+    - [5. Check Logs](#5-check-logs)
+  - [Monitoring](#monitoring)
+  - [Update](#update)
+    - [e.g. Update nodeos version](#eg-update-nodeos-version)
 
 ## Architecture
 
-| HOSTNAME    | LOCATION            | PUBLIC DNS                  | CNAME                | WIREGUARD IP |
-| ----------- | ------------------- | --------------------------- | -------------------- | ------------ |
-| bhs-infra-1 | Bauharnois (Canada) | ns548590.ip-51-79-82.net    |                      | 192.168.1.1  |
-| bhs-infra-2 | Bauharnois (Canada) | ns572376.ip-51-161-119.net  |                      | 192.168.1.2  |
-| rbx-infra-1 | Roubaix (France)    | ns3177211.ip-51-210-113.eu  |                      | 192.168.1.3  |
-| rbx-infra-2 | Roubaix (France)    | ns3162930.ip-51-91-116.eu   |                      | 192.168.1.4  |
-| vin-infra-1 | Vint Hill (USA)     | ns1011418.ip-135-148-169.us |                      | 192.168.1.5  |
-| vin-infra-2 | Vint Hill (USA)     | ns1011426.ip-135-148-169.us |                      | 192.168.1.6  |
+| HOSTNAME        | LOCATION | PUBLIC DNS                  | CNAME | WIREGUARD IP |
+| --------------- | -------- | --------------------------- | ----- | ------------ |
+| diablo-france-1 | France   | ns3177211.ip-51-210-113.eu  |       | 10.20.1.1    |
+| diablo-france-2 | France   | ns3162930.ip-51-91-116.eu   |       | 10.20.1.2    |
+| diablo-canada-1 | Canada   | ns548590.ip-51-79-82.net    |       | 10.20.2.1    |
+| diablo-canada-2 | Canada   | ns572376.ip-51-161-119.net  |       | 10.20.2.2    |
+| diablo-us-1     | US       | ns1011418.ip-135-148-169.us |       | 10.20.3.1    |
+| diablo-us-2     | US       | ns1011426.ip-135-148-169.us |       | 10.20.3.2    |
 
 - Servers are named with the following pattern: \<location in three letters\>-\<ovh server type\>.
 - Every server is communicating with each otherr through Wireguard (= VPN tunnel).
-- Every server *-infra-1 hosts a nodeos producer listening on Wireguard private IP.
-- Every server *-infra-2 hosts two nodeos api listening on Wireguard private IP + listening HTTP (tcp/8888 and tcp/8889).
-
+- Every server diablo-*-1 hosts a nodeos producer listening on Wireguard private IP.
+- Every server diablo-*-1 hosts one nodeos api listening on Wireguard private IP + listening HTTP (tcp/8888).
 
 ## Code structure
 Files under `files/currently-not-used/` are originally under `files/` in [Multinode testnet-benchmark on OVH dedicated servers (June 2020)](https://github.com/ultraio/testnet-benchmark), but they are currently not used.   
@@ -30,7 +52,6 @@ Files under `files/currently-not-used/` are originally under `files/` in [Multin
 ├── ansible-task-api.yaml
 ├── ansible-tasks-main.yaml
 ├── ansible-vars.yaml
-├── bhs-infra-2.conf
 ├── files
 │   ├── blackbox.yaml
 │   ├── blackbox_exporter.service
@@ -87,64 +108,97 @@ Files:
 
 ## Pre-requisites to use this project
 
-1- Clone the project.
+### 1. Clone the project.
+
+Clone the project into your `~/ultra` folder.
+
 ```
-git@github.com:ultraio/diablo-chain-setup.git
+git clone git@github.com:ultraio/diablo-chain-setup.git
 ```
 
-2- [Install ansible](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html).
+### 2. Install Ansible
 
-3- At the root of project, create a file `github_token` with gitub access token.
+[https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html)
 
-4- Create private key file `~/.ssh/benchmark-testnet.rsa` with ssh private key to connect to root@\<server\> via ssh. Otherwise update `ssh-config` in root of the project accordingly (Note: `devops.rsa` will work as well). Don't forget to update `~/ssh/benchmark-testnet.rsa` with correct permissions: `chmod 400 ~/.ssh/benchmark-testnet.rsa`.
+### 3. Create `github_token`
 
-5- Test SSH connection.
-```
+At the root of project, create a file `github_token` with gitub access token.
+
+
+### 4. Create Private Key
+
+Create private key file `~/.ssh/benchmark-testnet.rsa` with ssh private key to connect to root@\<server\> via ssh. Otherwise update `ssh-config` in root of the project accordingly (Note: `devops.rsa` will work as well). Don't forget to update `~/ssh/benchmark-testnet.rsa` with correct permissions: `chmod 400 ~/.ssh/benchmark-testnet.rsa`.
+
+### 5. Test 
+
+Test SSH connection.
+
+```bash
 #1st test
-local# ssh -F ./ssh-config bhs-infra-1
+local# ssh -F ./ssh-config diablo-france-1
 
 #2nd test
 local# MODULE=ping ./wrapper.sh ansible all_eos
 ```
 
-## Bootstrap of multinode testnet
+## Bootstrap of Multinode Test Network
 
-0- If not starting from a fresh install, the older install must be removed like the following:
+Please keep in mind that when using these commands it will wipe the existing chain entirely.
+
+These commands should not be used unless we're rebooting a fresh chain.
+
+All `nodeos` binaries can be found in the `/opt/eosio` directory. There will be additional folders to check additional data.
+
+_**If you only want to setup the machine(s) do Steps 1 & 2**_
+
+---
+
+### 1. Clean & Purge
+
+If not starting from a fresh install, the older install must be removed like the following:
 ```
 local# ./wrapper.sh stop-and-erase
 ```
 
-1- Create file tree, deploy config and files, create containers.  
+### 2. Create file tree, deploy config and files, create containers.  
 In `wrapper.sh`, nodeos binaries version for producer, nodeos binaries version for api, and `eosio.contracts` version are specified as `PRODUCER_BIN_VERSION`, `API_BIN_VERSION`, and `CONTRACTS_VERSION` variable, respectively.
 ```
 local# ./wrapper.sh bootup
 ```
 
-3- Start all the nodeos (3 nodeos-producer, 6 nodeos-api).
+_**If you only want to setup the machine(s) stop here.**_
+
+### 3. Start Nodes (Optional)
+
+Start all the nodeos (3 nodeos-producer, 3 nodeos-api).
 ```
 local# ./wrapper.sh start-all
 ```
-At this point, only the first producer on `bhs-infra-1` should produce blocks.  
-Log in to `bhs-infra-1`  and check the logs.
+At this point, only the first producer on `diablo-france-1` should produce blocks.  
+Log in to `diablo-france-1`  and check the logs.
 ```
-local# ssh -F ./ssh-config bhs-infra-1
-bhs-infra-1# journalctl -u nodeos_producer -f
+local# ssh -F ./ssh-config diablo-france-1
+diablo-france-1# journalctl -u nodeos_producer -f
 ```
 
-4- Run `bootup.sh` to create account, deploy system contracts, etc. on the blockchain.  
+### 4. Bootup
+
+Run `bootup.sh` to create account, deploy system contracts, etc. on the blockchain.  
 All producers but the first one should produce blocks as well. The first producer name should be changed then the producer shoud be restarted to produce blocks again.
 ```
-bhs-infra-1# cd /root/nodeos-bootstrap
-bhs-infra-1# ./bootup.sh
-bhs-infra-1# service nodeos_producer restart
+diablo-france-1# cd /root/nodeos-bootstrap
+diablo-france-1# ./bootup.sh
+diablo-france-1# service nodeos_producer restart
 ```
 
-5- Make sure that there are lines like this in the logs
+### 5. Check Logs
+
+Make sure that there are lines like this in the logs
 ```
-bhs-infra-1# journalctl -u nodeos_producer -f
+diablo-france-1# journalctl -u nodeos_producer -f
 ...
-Nov 01 02:09:35 bhs-infra-1 start.sh[11693]: info  2021-11-01T02:09:35.308 nodeos    producer_plugin.cpp:604       on_incoming_block    ] Received block 874d1eb1eb2a7620... #156 @ 2021-11-01T02:09:35.500 signed by produceracc3 [trxs: 0, lib: 108, conf: 0, latency: -191 ms]
-Nov 01 02:09:35 bhs-infra-1 start.sh[11693]: info  2021-11-01T02:09:35.902 nodeos    producer_plugin.cpp:2908      produce_block        ] Produced block 20f62acff61d7ca7... #157 @ 2021-11-01T02:09:36.000 signed by produceracc1 [trxs: 0, lib: 120, confirmed: 24]
+Nov 01 02:09:35 diablo-france-1 start.sh[11693]: info  2021-11-01T02:09:35.308 nodeos    producer_plugin.cpp:604       on_incoming_block    ] Received block 874d1eb1eb2a7620... #156 @ 2021-11-01T02:09:35.500 signed by produceracc3 [trxs: 0, lib: 108, conf: 0, latency: -191 ms]
+Nov 01 02:09:35 diablo-france-1 start.sh[11693]: info  2021-11-01T02:09:35.902 nodeos    producer_plugin.cpp:2908      produce_block        ] Produced block 20f62acff61d7ca7... #157 @ 2021-11-01T02:09:36.000 signed by produceracc1 [trxs: 0, lib: 120, confirmed: 24]
 ...
 ```
 The important part is "signed by produceraccX", where X must be between 1-3 to confirm every node producer is actually producing block as expected. Producers produce 12 blocks every 6 seconds in turn. 
@@ -159,6 +213,6 @@ Via
 
 ### e.g. Update nodeos version
 
-0- Edit `PRODUCER_BIN_VERSION`, `API_BIN_VERSION`, and `CONTRACTS_VERSION` variables in `wrapper.sh`.
+0) - Edit `PRODUCER_BIN_VERSION`, `API_BIN_VERSION`, and `CONTRACTS_VERSION` variables in `wrapper.sh`.
 
-1- Erase & setup new testnet following part [Bootstrap of multinode testnet](#bootstrap-of-multinode-testnet).
+1) - Erase & setup new testnet following part [Bootstrap of multinode testnet](#bootstrap-of-multinode-testnet).
